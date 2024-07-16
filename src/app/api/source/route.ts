@@ -1,15 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import {  NextResponse } from "next/server";
 import puppeteer from "puppeteer";
+import { type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const install = require(`puppeteer/internal/node/install.js`).downloadBrowser;
   await install();
   const url = request.nextUrl.searchParams.get('url');
 
-  if(!url) return {
+  if(!url) 
+  return NextResponse.json( {
     error: true,
     source: null
-  }
+  })
 
   const browser = await puppeteer.launch({
     args: ["--use-gl=angle", "--use-angle=swiftshader", "--single-process", "--no-sandbox"],
