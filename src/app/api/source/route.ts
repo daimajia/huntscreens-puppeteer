@@ -2,6 +2,10 @@ import {  NextResponse } from "next/server";
 import puppeteer from "puppeteer";
 import { type NextRequest } from 'next/server'
 
+export const config = {
+  maxDuration: 60,
+};
+
 export async function GET(request: NextRequest) {
   const install = require(`puppeteer/internal/node/install.js`).downloadBrowser;
   await install();
