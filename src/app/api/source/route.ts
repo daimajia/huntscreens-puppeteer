@@ -1,20 +1,28 @@
-import {  NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import puppeteer from "puppeteer";
-import { type NextRequest } from 'next/server'
+import { type NextRequest } from 'next/server';
+import redis from "@/lib/redis";
 
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
+  const url = request.nextUrl.searchParams.get('url');
+  if(!url || url.length === 0) {
+    return NextResponse.json( {
+      error: true,
+      source: null
+    })
+  }
+  const data = await redis.get(url);
+  if(data) {
+    return NextResponse.json({
+      error: false,
+      source: data
+    })
+  }
   const install = require(`puppeteer/internal/node/install.js`).downloadBrowser;
   await install();
-  const url = request.nextUrl.searchParams.get('url');
-
-  if(!url) 
-  return NextResponse.json( {
-    error: true,
-    source: null
-  })
-
+  
   const browser = await puppeteer.launch({
     args: ["--use-gl=angle", "--use-angle=swiftshader", "--single-process", "--no-sandbox"],
     headless: true,
@@ -26,7 +34,8 @@ export async function GET(request: NextRequest) {
   await page.setUserAgent(customUA);
 
   await page.goto(url);
-  const content = await page.evaluate(() => document.body.innerHTML); 
+  const content = await page.evaluate(() => document.body.innerHTML);
+  await redis.set(url, content, 'EX', 60 * 60 * 6);
   return NextResponse.json({
     error: false,
     source: content
