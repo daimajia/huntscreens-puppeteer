@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
   await page.goto(url);
   const content = await page.evaluate(() => document.body.innerHTML);
   await redis.set(url, content, 'EX', 60 * 60 * 6);
+  await browser.close();
   return NextResponse.json({
     error: false,
     source: content
