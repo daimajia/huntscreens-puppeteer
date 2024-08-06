@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import { type NextRequest } from 'next/server';
 import redis from "@/lib/redis";
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    await page.goto(url, { waitUntil: 'networkidle0' });
+    await page.goto(url);
     const content = await page.content();
     await redis.set(url, content, 'EX', 60 * 60 * 6);
     return NextResponse.json({
