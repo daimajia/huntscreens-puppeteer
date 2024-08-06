@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
   if(!url || url.length === 0) {
     return NextResponse.json( {
       error: true,
-      source: null
+      source: null,
+      msg: "url is invalid"
     })
   }
   const data = await redis.get(url);
@@ -20,25 +21,49 @@ export async function GET(request: NextRequest) {
       source: data
     })
   }
-  const install = require(`puppeteer/internal/node/install.js`).downloadBrowser;
-  await install();
+  let browser;
+  try{
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--window-size=1920x1080',
+      ],
+      defaultViewport: {
+        width: 1920,
+        height: 1080,
+      },
+    });
   
-  const browser = await puppeteer.launch({
-    args: ["--use-gl=angle", "--use-angle=swiftshader", "--single-process", "--no-sandbox"],
-    headless: true,
-  });
-
-  const page = await browser.newPage();
-
-  const customUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36';
-  await page.setUserAgent(customUA);
-
-  await page.goto(url);
-  const content = await page.evaluate(() => document.body.innerHTML);
-  await redis.set(url, content, 'EX', 60 * 60 * 6);
-  await browser.close();
-  return NextResponse.json({
-    error: false,
-    source: content
-  })
+  
+    const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(60000);
+  
+    const customUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36';
+    await page.setUserAgent(customUA);
+  
+    await page.goto(url, { waitUntil: 'networkidle0' });
+    const content = await page.content();
+    await redis.set(url, content, 'EX', 60 * 60 * 6);
+    return NextResponse.json({
+      error: false,
+      source: content,
+      msg: "success"
+    })
+  }catch(e) {
+    console.error("Got error:", url, e);
+    return NextResponse.json({
+      error: true,
+      msg: e,
+      source: ""
+    })
+  }finally {
+    if(browser){
+      await browser.close();  
+    }
+  }
 }
