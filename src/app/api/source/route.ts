@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer";
 import { type NextRequest } from 'next/server';
 import redis from "@/lib/redis";
 
