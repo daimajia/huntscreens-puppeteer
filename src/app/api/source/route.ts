@@ -46,6 +46,15 @@ export async function GET(request: NextRequest) {
     const customUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36';
     await page.setUserAgent(customUA);
   
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     await page.goto(url, { waitUntil: 'networkidle0' });
     const content = await page.content();
     await redis.set(url, content, 'EX', 60 * 60 * 6);
